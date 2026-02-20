@@ -26,6 +26,7 @@ export function initDb() {
       state TEXT NOT NULL,
       zip_code TEXT NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      
     );
 
     CREATE TABLE IF NOT EXISTS accounts (
@@ -56,6 +57,8 @@ export function initDb() {
       expires_at TEXT NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE INDEX IF NOT EXISTS user_id_idx ON accounts(user_id);
+    CREATE INDEX IF NOT EXISTS account_id_idx ON transactions(account_id);
   `);
 }
 

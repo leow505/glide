@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -28,7 +28,9 @@ export const accounts = sqliteTable("accounts", {
   balance: integer("balance").default(0).notNull(),
   status: text("status").default("pending"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  userIdIndex: index("user_id_idx").on(table.userId),
+}));
 
 export const transactions = sqliteTable("transactions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -41,7 +43,9 @@ export const transactions = sqliteTable("transactions", {
   status: text("status").default("pending").notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   processedAt: text("processed_at"),
-});
+}, (table) => ({
+  accountIdIndex: index("account_id_idx").on(table.accountId),
+}));
 
 export const sessions = sqliteTable("sessions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
