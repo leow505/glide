@@ -1,0 +1,71 @@
+﻿npx : PASS tests/unit/account.test.ts
+At line:1 char:1
++ npx jest --ci --no-cache --verbose 2>&1 | Out-File -Encoding utf8 tes ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS tests/unit/account.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Account Router Tests
+    VAL-205 (Zero Amount Funding)
+      鈭?should reject amount: 0 (7 ms)
+    VAL-206 (Card Number Validation)
+      鈭?should reject card number failing Luhn check (1 ms)
+    VAL-207 (Routing Number Optionality)
+      鈭?should accept card funding without routing number (2 ms)
+    PERF-406 (Balance Calculation)
+      鈭?should verify final balance is exactly $1.00 after 100 deposits of $0.01 (1 ms)
+
+PASS tests/unit/auth.test.ts
+  Auth Router Validation Tests
+    VAL-208 (Weak Password)
+      鈭?should reject passwords shorter than 8 characters (9 ms)
+      鈭?should accept a valid 8-character password (65 ms)
+
+FAIL tests/unit/security.test.ts
+  Security Tests
+    SEC-301 (SSN Storage)
+      脳 should encrypt SSN as base64 and store last four digits (72 ms)
+    SEC-302 (Insecure Random Numbers)
+      脳 should use crypto.randomInt for account numbers (2 ms)
+    SEC-304 (Session Management)
+      鈭?should set secure cookie attributes and 30m max-age (3 ms)
+    PERF-408 (Resource Leak)
+      鈭?should not initialize multiple database connections
+
+  鈼?Security Tests 鈥?SEC-301 (SSN Storage) 鈥?should encrypt SSN as base64 and store last four digits
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+    [0m [90m 62 |[39m
+     [90m 63 |[39m             expect(db[33m.[39minsert)[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 64 |[39m             [36mconst[39m insertedValues [33m=[39m (db[33m.[39minsert({} [36mas[39m any)[33m.[39mvalues 
+[36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m;[39m
+     [90m    |[39m                                                                                            [31m[1m^[22m[39m
+     [90m 65 |[39m
+     [90m 66 |[39m             [90m// Verify encryption (should be base64)[39m
+     [90m 67 |[39m             expect(insertedValues[33m.[39mssn)[33m.[39mnot[33m.[39mtoBe(ssn)[33m;[39m[0m
+
+      at Object.<anonymous> (tests/unit/security.test.ts:64:92)
+
+  鈼?Security Tests 鈥?SEC-302 (Insecure Random Numbers) 鈥?should use crypto.randomInt for account numbers
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+    [0m [90m 84 |[39m             [36mawait[39m accountCaller[33m.[39mcreateAccount({ accountType[33m:[39m [32m'checking'[39m })[33m;[39m
+     [90m 85 |[39m
+    [31m[1m>[22m[39m[90m 86 |[39m             expect(randomIntSpy)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m    |[39m                                  [31m[1m^[22m[39m
+     [90m 87 |[39m             randomIntSpy[33m.[39mmockRestore()[33m;[39m
+     [90m 88 |[39m         })[33m;[39m
+     [90m 89 |[39m     })[33m;[39m[0m
+
+      at Object.toHaveBeenCalled (tests/unit/security.test.ts:86:34)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       2 failed, 8 passed, 10 total
+Snapshots:   0 total
+Time:        2.166 s
+Ran all test suites.

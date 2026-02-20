@@ -1,0 +1,112 @@
+﻿npx : FAIL tests/unit/account.test.ts
+At line:1 char:1
++ npx jest --ci --no-cache --verbose 2>&1 | Out-File -Encoding utf8 tes ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (FAIL tests/unit/account.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Account Router Tests
+    VAL-205 (Zero Amount Funding)
+      鈭?should reject amount: 0 (6 ms)
+    VAL-206 (Card Number Validation)
+      鈭?should reject card number failing Luhn check (1 ms)
+    VAL-207 (Routing Number Optionality)
+      脳 should accept card funding without routing number (1 ms)
+    PERF-406 (Balance Calculation)
+      鈭?should verify final balance is exactly $1.00 after 100 deposits of $0.01 (1 ms)
+
+  鈼?Account Router Tests 鈥?VAL-207 (Routing Number Optionality) 鈥?should accept card funding without routing number
+
+    TRPCError: Account not found
+
+    [0m [90m 126 |[39m
+     [90m 127 |[39m       [36mif[39m ([33m![39maccount) {
+    [31m[1m>[22m[39m[90m 128 |[39m         [36mthrow[39m [36mnew[39m [33mTRPCError[39m({
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 129 |[39m           code[33m:[39m [32m"NOT_FOUND"[39m[33m,[39m
+     [90m 130 |[39m           message[33m:[39m [32m"Account not found"[39m[33m,[39m
+     [90m 131 |[39m         })[33m;[39m[0m
+
+      at server/routers/account.ts:128:15
+      at resolveMiddleware (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:107:30)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+
+PASS tests/unit/auth.test.ts
+  Auth Router Validation Tests
+    VAL-208 (Weak Password)
+      鈭?should reject passwords shorter than 8 characters (9 ms)
+      鈭?should accept a valid 8-character password (67 ms)
+
+FAIL tests/unit/security.test.ts
+  Security Tests
+    SEC-301 (SSN Storage)
+      脳 should encrypt SSN as base64 and store last four digits (72 ms)
+    SEC-302 (Insecure Random Numbers)
+      脳 should use crypto.randomInt for account numbers (2 ms)
+    SEC-304 (Session Management)
+      脳 should set secure cookie attributes and 30m max-age (2 ms)
+    PERF-408 (Resource Leak)
+      鈭?should not initialize multiple database connections (2 ms)
+
+  鈼?Security Tests 鈥?SEC-301 (SSN Storage) 鈥?should encrypt SSN as base64 and store last four digits
+
+    TRPCError: Failed to create user
+
+    [0m [90m 86 |[39m
+     [90m 87 |[39m       [36mif[39m ([33m![39muser) {
+    [31m[1m>[22m[39m[90m 88 |[39m         [36mthrow[39m [36mnew[39m [33mTRPCError[39m({
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 89 |[39m           code[33m:[39m [32m"INTERNAL_SERVER_ERROR"[39m[33m,[39m
+     [90m 90 |[39m           message[33m:[39m [32m"Failed to create user"[39m[33m,[39m
+     [90m 91 |[39m         })[33m;[39m[0m
+
+      at server/routers/auth.ts:88:15
+      at resolveMiddleware (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:107:30)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+      at procedure (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:181:24)
+      at node_modules/@trpc/server/dist/unstable-core-do-not-import/router.js:228:28
+      at Object.<anonymous> (tests/unit/security.test.ts:43:13)
+
+  鈼?Security Tests 鈥?SEC-302 (Insecure Random Numbers) 鈥?should use crypto.randomInt for account numbers
+
+    TRPCError: Account not found
+
+    [0m [90m 76 |[39m
+     [90m 77 |[39m       [36mif[39m ([33m![39maccount) {
+    [31m[1m>[22m[39m[90m 78 |[39m         [36mthrow[39m [36mnew[39m [33mTRPCError[39m({
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 79 |[39m           code[33m:[39m [32m"NOT_FOUND"[39m[33m,[39m
+     [90m 80 |[39m           message[33m:[39m [32m"Account not found"[39m[33m,[39m
+     [90m 81 |[39m         })[33m;[39m[0m
+
+      at server/routers/account.ts:78:15
+      at resolveMiddleware (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:107:30)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+      at procedure (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:181:24)
+      at node_modules/@trpc/server/dist/unstable-core-do-not-import/router.js:228:28
+      at Object.<anonymous> (tests/unit/security.test.ts:79:13)
+
+  鈼?Security Tests 鈥?SEC-304 (Session Management) 鈥?should set secure cookie attributes and 30m max-age
+
+    TRPCError: Invalid credentials
+
+    [0m [90m 127 |[39m
+     [90m 128 |[39m       [36mif[39m ([33m![39muser) {
+    [31m[1m>[22m[39m[90m 129 |[39m         [36mthrow[39m [36mnew[39m [33mTRPCError[39m({
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 130 |[39m           code[33m:[39m [32m"UNAUTHORIZED"[39m[33m,[39m
+     [90m 131 |[39m           message[33m:[39m [32m"Invalid credentials"[39m[33m,[39m
+     [90m 132 |[39m         })[33m;[39m[0m
+
+      at server/routers/auth.ts:129:15
+      at resolveMiddleware (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:107:30)
+      at callRecursive (node_modules/@trpc/server/dist/unstable-core-do-not-import/procedureBuilder.js:148:24)
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       4 failed, 6 passed, 10 total
+Snapshots:   0 total
+Time:        2.218 s
+Ran all test suites.
