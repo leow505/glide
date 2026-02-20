@@ -154,7 +154,7 @@ export default function SignupPage() {
                       if (!value.match(/[A-Z]/)) {
                         return "Password must contain an uppercase letter";
                       }
-                      if (!value.match(/[^a-zA-Z0-9]/)) {
+                      if (!value.match(/[.!@#$%^&*]/)) {
                         return "Password must contain a special character";
                       }
                       return true;

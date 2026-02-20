@@ -25,7 +25,7 @@ export const accounts = sqliteTable("accounts", {
     .notNull(),
   accountNumber: text("account_number").unique().notNull(),
   accountType: text("account_type").notNull(), // checking, savings
-  balance: real("balance").default(0).notNull(),
+  balance: integer("balance").default(0).notNull(),
   status: text("status").default("pending"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

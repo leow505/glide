@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { randomInt } from "crypto";
 
 function generateAccountNumber(): string {
@@ -74,17 +74,13 @@ export const accountRouter = router({
       // Fetch the created account
       const account = await db.select().from(accounts).where(eq(accounts.accountNumber, accountNumber!)).get();
 
-      return (
-        account || {
-          id: 0,
-          userId: ctx.user.id,
-          accountNumber: accountNumber!,
-          accountType: input.accountType,
-          balance: 100,
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        }
-      );
+      if (!account) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Account not found",
+        });
+      }
+      return account;
     }),
 
   getAccounts: protectedProcedure.query(async ({ ctx }) => {
@@ -98,11 +94,17 @@ export const accountRouter = router({
       z.object({
         accountId: z.number(),
         amount: z.number().positive(),
-        fundingSource: z.object({
-          type: z.enum(["card", "bank"]),
-          accountNumber: z.string(),
-          routingNumber: z.string().length(9).regex(/^[0-9]+$/),
-        }),
+        fundingSource: z.discriminatedUnion("type", [
+          z.object({
+            type: z.literal("card"),
+            accountNumber: z.string(),
+          }),
+          z.object({
+            type: z.literal("bank"),
+            accountNumber: z.string(),
+            routingNumber: z.string().length(9).regex(/^[0-9]+$/),
+          }),
+        ]),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -157,14 +159,17 @@ export const accountRouter = router({
         })
         .where(eq(accounts.id, input.accountId));
 
-      let finalBalance = account.balance;
-      for (let i = 0; i < 100; i++) {
-        finalBalance = finalBalance + amount / 100;
-      }
+      const currentBalanceDecimal = Math.round(account.balance * 100);
+      const amtCents = Math.round(amount * 100);
+      const finalBalance = (currentBalanceDecimal + amtCents) / 100;
+
+      await db.update(accounts).set({
+        balance: finalBalance,
+      }).where(eq(accounts.id, input.accountId));
 
       return {
         transaction,
-        newBalance: finalBalance, // This will be slightly off due to float precision
+        newBalance: finalBalance,
       };
     }),
 
@@ -192,7 +197,8 @@ export const accountRouter = router({
       const accountTransactions = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.accountId, input.accountId));
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(desc(transactions.createdAt));
 
       const enrichedTransactions = [];
       for (const transaction of accountTransactions) {

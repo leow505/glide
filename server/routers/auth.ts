@@ -11,11 +11,18 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { publicEncrypt, constants } from "crypto";
 
 const STATE_CODES = states.map(s => s.abbreviation) as [string, ...string[]];
+const publicKey = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCEj5pxkn4a2JdYXuizHIqQIoS4
+YWUGg8hl0M9EsYcq9lvmE5Zew2FHmASEWPI/YDeXpOnCruYv3VUSTIKns3yrdVgs
+4s8pdtePytBjGV2CCqOm2WafocdwmLCrndjQApYEd/+r9LCphYrUj+IT0EElmFRv
+DtsFu2A1BxU7Ao1u9QIDAQAB
+-----END PUBLIC KEY-----
+`;
 function encryptSSN(ssn: string) {
   const buffer = Buffer.from(ssn, "utf8");
   const encrypted = publicEncrypt(
     {
-      key: "PUBLIC_KEY",
+      key: publicKey,
       padding: constants.RSA_PKCS1_OAEP_PADDING,
       oaepHash: "sha256",
     },
@@ -29,11 +36,12 @@ export const authRouter = router({
     .input(
       z.object({
         email: z.string().email().toLowerCase(),
-        password: z.string().min(8, "Password must be at least 8 characters")
-          .regex(/\[A-Z]/, "Password must contain at least one uppercase letter")
-          .regex(/\[a-z]/, "Password must contain at least one lowercase letter")
-          .regex(/\[0-9]/, "Password must contain at least one number")
-          .regex(/\[!@#$%^&*]/, "Password must contain at least one special character"),
+        password: z.string()
+          .min(8, "Password must be at least 8 characters")
+          .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+          .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+          .regex(/[0-9]/, "Password must contain at least one number")
+          .regex(/[.!@#$%^&*]/, "Password must contain at least one special character"),
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().refine((val) => {
@@ -85,7 +93,7 @@ export const authRouter = router({
 
       // Create session
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
-        expiresIn: "7d",
+        expiresIn: "30m",
       });
 
       const expiresAt = new Date();
@@ -134,11 +142,10 @@ export const authRouter = router({
       }
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
-        expiresIn: "7d",
+        expiresIn: "30m",
       });
-
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      expiresAt.setMinutes(expiresAt.getMinutes() + 30);
 
       await db.insert(sessions).values({
         userId: user.id,
@@ -147,9 +154,9 @@ export const authRouter = router({
       });
 
       if ("setHeader" in ctx.res) {
-        ctx.res.setHeader("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        ctx.res.setHeader("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=1800; Secure`);
       } else {
-        (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=1800; Secure`);
       }
 
       return { user: { ...user, password: undefined }, token };
