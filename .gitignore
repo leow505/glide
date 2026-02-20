@@ -48,3 +48,11 @@ bank.db
 # IDE
 .vscode/
 .idea/
+
+# cypress
+/cypress/screenshots
+/cypress/videos
+
+# logs
+test_output*.txt
+cypress_output.txt
