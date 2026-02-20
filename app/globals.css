@@ -17,7 +17,16 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+
+  input,
+  select,
+  span,
+  textarea {
+    color: var(--background);
+  }
 }
+
+
 
 body {
   background: var(--background);

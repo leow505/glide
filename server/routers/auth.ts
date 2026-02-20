@@ -6,21 +6,50 @@ import { publicProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import states from 'states-us';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import { publicEncrypt, constants } from "crypto";
+
+const STATE_CODES = states.map(s => s.abbreviation) as [string, ...string[]];
+function encryptSSN(ssn: string) {
+  const buffer = Buffer.from(ssn, "utf8");
+  const encrypted = publicEncrypt(
+    {
+      key: "PUBLIC_KEY",
+      padding: constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    buffer
+  );
+  return encrypted.toString("base64");
+}
 
 export const authRouter = router({
   signup: publicProcedure
     .input(
       z.object({
         email: z.string().email().toLowerCase(),
-        password: z.string().min(8),
+        password: z.string().min(8, "Password must be at least 8 characters")
+          .regex(/\[A-Z]/, "Password must contain at least one uppercase letter")
+          .regex(/\[a-z]/, "Password must contain at least one lowercase letter")
+          .regex(/\[0-9]/, "Password must contain at least one number")
+          .regex(/\[!@#$%^&*]/, "Password must contain at least one special character"),
         firstName: z.string().min(1),
         lastName: z.string().min(1),
-        phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
-        dateOfBirth: z.string(),
+        phoneNumber: z.string().refine((val) => {
+          const phoneNumber = parsePhoneNumberFromString(val);
+          return phoneNumber?.isValid() || "Invalid phone number";
+        }),
+        dateOfBirth: z.string().refine((val) => {
+          const bod = new Date(val);
+          const today = new Date();
+          const age = today.getFullYear() - bod.getFullYear();
+          return age >= 18 && age <= 100;
+        }),
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),
-        state: z.string().length(2).toUpperCase(),
+        state: z.enum(STATE_CODES),
         zipCode: z.string().regex(/^\d{5}$/),
       })
     )
@@ -35,10 +64,13 @@ export const authRouter = router({
       }
 
       const hashedPassword = await bcrypt.hash(input.password, 10);
-
+      const encryptedSsn = encryptSSN(input.ssn);
+      const lastFour = input.ssn.slice(-4);
       await db.insert(users).values({
         ...input,
         password: hashedPassword,
+        ssn: encryptedSsn,
+        ssnLastFour: lastFour,
       });
 
       // Fetch the created user

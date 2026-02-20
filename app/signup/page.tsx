@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
 import Link from "next/link";
+import mailcheck from "mailcheck";
+import { states } from 'states-us';
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
+const STATE_CODES = states.map(s => s.abbreviation) as [string, ...string[]];
+type UsState = (typeof STATE_CODES)[number];
 
 type SignupFormData = {
   email: string;
@@ -17,7 +23,7 @@ type SignupFormData = {
   ssn: string;
   address: string;
   city: string;
-  state: string;
+  state: UsState;
   zipCode: string;
 };
 
@@ -25,6 +31,20 @@ export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [countryCode, setCountryCode] = useState("+1");
+
+  const checkEmailTypo = (email: string) => {
+    mailcheck.run({
+      email: email,
+      suggested: (suggestion: any) => {
+        setEmailSuggestion(suggestion.full);
+      },
+      empty: () => {
+        setEmailSuggestion(null);
+      }
+    })
+  }
 
   const {
     register,
@@ -32,6 +52,7 @@ export default function SignupPage() {
     formState: { errors },
     watch,
     trigger,
+    setValue,
   } = useForm<SignupFormData>();
   const signupMutation = trpc.auth.signup.useMutation();
 
@@ -83,13 +104,33 @@ export default function SignupPage() {
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
-                      value: /^\S+@\S+$/i,
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                       message: "Invalid email address",
                     },
                   })}
                   type="email"
+                  onBlur={(e) => checkEmailTypo(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
+                {emailSuggestion && (
+                  <p className="mt-1 text-sm text-gray-600">
+                    Did you mean{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue("email", emailSuggestion);
+                        setEmailSuggestion(null);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 font-semibold underline"
+                    >
+                      {emailSuggestion}
+                    </button>
+                    ?
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Emails are case-insensitive and will be saved in lowercase.
+                </p>
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
               </div>
 
@@ -100,16 +141,23 @@ export default function SignupPage() {
                 <input
                   {...register("password", {
                     required: "Password is required",
-                    minLength: {
-                      value: 8,
-                      message: "Password must be at least 8 characters",
-                    },
-                    validate: {
-                      notCommon: (value) => {
-                        const commonPasswords = ["password", "12345678", "qwerty"];
-                        return !commonPasswords.includes(value.toLowerCase()) || "Password is too common";
-                      },
-                      hasNumber: (value) => /\d/.test(value) || "Password must contain a number",
+                    validate: (value) => {
+                      if (value.length < 8) {
+                        return "Password must be at least 8 characters";
+                      }
+                      if (!value.match(/\d/)) {
+                        return "Password must contain a number";
+                      }
+                      if (!value.match(/[a-z]/)) {
+                        return "Password must contain a lowercase letter";
+                      }
+                      if (!value.match(/[A-Z]/)) {
+                        return "Password must contain an uppercase letter";
+                      }
+                      if (!value.match(/[^a-zA-Z0-9]/)) {
+                        return "Password must contain a special character";
+                      }
+                      return true;
                     },
                   })}
                   type="password"
@@ -169,13 +217,23 @@ export default function SignupPage() {
                 <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
                   Phone Number
                 </label>
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                >
+                  <option value="+1">United States (+1)</option>
+                  <option value="+91">India (+91)</option>
+                  {/* Add more codes as needed */}
+                </select>
                 <input
                   {...register("phoneNumber", {
                     required: "Phone number is required",
-                    pattern: {
-                      value: /^\d{10}$/,
-                      message: "Phone number must be 10 digits",
-                    },
+                    validate: (value) => {
+                      const fullNumber = countryCode + value;
+                      const phoneNumber = parsePhoneNumberFromString(fullNumber);
+                      return phoneNumber?.isValid() || "Invalid phone number";
+                    }
                   })}
                   type="tel"
                   placeholder="1234567890"
@@ -189,7 +247,15 @@ export default function SignupPage() {
                   Date of Birth
                 </label>
                 <input
-                  {...register("dateOfBirth", { required: "Date of birth is required" })}
+                  {...register("dateOfBirth", {
+                    required: "Date of birth is required", validate: (value) => {
+                      const date = new Date(value);
+                      const today = new Date();
+                      if (date > today) return "Birth date cannot be in the future";
+                      const age = today.getFullYear() - date.getFullYear();
+                      return age >= 18 ? true : "You must be at least 18 years old";
+                    }
+                  })}
                   type="date"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
@@ -248,18 +314,19 @@ export default function SignupPage() {
                   <label htmlFor="state" className="block text-sm font-medium text-gray-700">
                     State
                   </label>
-                  <input
+                  <select
                     {...register("state", {
                       required: "State is required",
-                      pattern: {
-                        value: /^[A-Z]{2}$/,
-                        message: "Use 2-letter state code",
-                      },
                     })}
-                    type="text"
-                    placeholder="CA"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  />
+                  >
+                    <option value="">Select State</option>
+                    {states.map((state) => (
+                      <option key={state.abbreviation} value={state.abbreviation}>
+                        {state.abbreviation}
+                      </option>
+                    ))}
+                  </select>
                   {errors.state && <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>}
                 </div>
 

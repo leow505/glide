@@ -4,11 +4,31 @@ import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { randomInt } from "crypto";
 
 function generateAccountNumber(): string {
-  return Math.floor(Math.random() * 1000000000)
-    .toString()
-    .padStart(10, "0");
+  return randomInt(1000000000).toString();
+}
+
+function checkLuhnAlgo(cardNumber: string): boolean {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let i = cardNumber.length - 1; i >= 0; i--) {
+    let digit = parseInt(cardNumber[i]);
+
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
 }
 
 export const accountRouter = router({
@@ -81,7 +101,7 @@ export const accountRouter = router({
         fundingSource: z.object({
           type: z.enum(["card", "bank"]),
           accountNumber: z.string(),
-          routingNumber: z.string().optional(),
+          routingNumber: z.string().length(9).regex(/^[0-9]+$/),
         }),
       })
     )
@@ -94,6 +114,13 @@ export const accountRouter = router({
         .from(accounts)
         .where(and(eq(accounts.id, input.accountId), eq(accounts.userId, ctx.user.id)))
         .get();
+
+      if (input.fundingSource.type === "card" && !checkLuhnAlgo(input.fundingSource.accountNumber)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid card number",
+        });
+      }
 
       if (!account) {
         throw new TRPCError({

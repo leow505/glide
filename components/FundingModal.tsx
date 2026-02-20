@@ -14,7 +14,7 @@ type FundingFormData = {
   amount: string;
   fundingType: "card" | "bank";
   accountNumber: string;
-  routingNumber?: string;
+  routingNumber: string;
 };
 
 export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProps) {
@@ -32,6 +32,27 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
 
   const fundingType = watch("fundingType");
   const fundAccountMutation = trpc.account.fundAccount.useMutation();
+
+  const checkLuhnAlgo = (cardNumber: string): boolean => {
+    let sum = 0;
+    let shouldDouble = false;
+
+    for (let i = cardNumber.length - 1; i >= 0; i--) {
+      let digit = parseInt(cardNumber[i]);
+
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+
+    return sum % 10 === 0;
+  };
 
   const onSubmit = async (data: FundingFormData) => {
     setError("");
@@ -75,7 +96,7 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
                     message: "Invalid amount format",
                   },
                   min: {
-                    value: 0.0,
+                    value: 0.01,
                     message: "Amount must be at least $0.01",
                   },
                   max: {
@@ -83,6 +104,7 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
                     message: "Amount cannot exceed $10,000",
                   },
                 })}
+                onBlur={(e) => { const val = parseFloat(e.target.value); if (!isNaN(val)) e.target.value = val.toString() }}
                 type="text"
                 className="pl-7 block w-full rounded-md border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
                 placeholder="0.00"
@@ -119,7 +141,13 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
                 validate: {
                   validCard: (value) => {
                     if (fundingType !== "card") return true;
-                    return value.startsWith("4") || value.startsWith("5") || "Invalid card number";
+                    if (!value.startsWith("4") && !value.startsWith("5")) {
+                      return "Invalid card number (must start with 4 or 5)";
+                    }
+                    if (!checkLuhnAlgo(value)) {
+                      return "Invalid card number";
+                    }
+                    return true;
                   },
                 },
               })}

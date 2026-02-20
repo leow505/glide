@@ -70,9 +70,8 @@ export default function DashboardPage() {
                       <dd className="mt-1 text-sm text-gray-500">
                         Status:{" "}
                         <span
-                          className={`font-medium ${
-                            account.status === "active" ? "text-green-600" : "text-yellow-600"
-                          }`}
+                          className={`font-medium ${account.status === "active" ? "text-green-600" : "text-yellow-600"
+                            }`}
                         >
                           {account.status}
                         </span>
